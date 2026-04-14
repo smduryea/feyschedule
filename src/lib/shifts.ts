@@ -15,7 +15,7 @@ export const SHIFTS: Shift[] = [
   { id: "pre-lunch-dishes", name: "Pre Lunch Dishes", startTime: "12:00", endTime: "13:00", maxSignups: 2 },
   { id: "post-lunch-dishes", name: "Post Lunch Dishes", startTime: "14:00", endTime: "15:00", maxSignups: 2 },
   { id: "cooking-1", name: "Cooking Shift", startTime: "16:30", endTime: "18:30", maxSignups: 2 },
-  { id: "cooking-2", name: "Cooking Shift", startTime: "17:20", endTime: "19:30", maxSignups: 2 },
+  { id: "cooking-2", name: "Cooking Shift", startTime: "17:30", endTime: "19:30", maxSignups: 2 },
   { id: "pre-dinner-dishes", name: "Pre Dinner Dishes", startTime: "18:00", endTime: "19:00", maxSignups: 2 },
   { id: "post-dinner-dishes", name: "Post Dinner Dishes", startTime: "20:00", endTime: "21:30", maxSignups: 2 },
 ];
