@@ -46,7 +46,7 @@ export default function Home() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <div className="flex items-end justify-between gap-3 mb-3">

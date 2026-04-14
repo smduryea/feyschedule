@@ -95,8 +95,8 @@ export function WeekGrid({ weekStart, signups, colorMap, onSignUp, onRemove, isM
   }
 
   return (
-    <div className="border-2 border-gray-900 bg-white overflow-x-auto scrollbar-none">
-      <div className="grid grid-cols-7 divide-x-2 divide-gray-900 min-w-[840px]" style={{ gridAutoColumns: "1fr" }}>
+    <div className="w-full border-2 border-gray-900 bg-white overflow-x-auto scrollbar-none">
+      <div className="grid grid-cols-7 divide-x-2 divide-gray-900 w-full min-w-[840px]" style={{ gridAutoColumns: "1fr" }}>
         {days.map((date) => (
           <DayColumn
             key={date.toISOString()}

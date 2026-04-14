@@ -14,7 +14,7 @@ interface WeeklyShiftsPanelProps {
 
 export function WeeklyShiftsPanel({ signups, colorMap, onSignUp, onRemove, isPastWeek }: WeeklyShiftsPanelProps) {
   return (
-    <div className="border-2 border-gray-900 bg-white">
+    <div className="w-full border-2 border-gray-900 bg-white">
       <div className="border-b-2 border-gray-900 bg-gray-900 px-4 py-2.5">
         <h2 className="font-mono text-xs font-bold uppercase tracking-[0.15em] text-amber-50">
           Weekly Shifts
