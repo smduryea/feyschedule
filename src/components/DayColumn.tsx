@@ -41,7 +41,7 @@ export function DayColumn({ date, signups, colorMap, onSignUp, onRemove, isMobil
         </div>
       )}
 
-      <div className={`flex flex-col flex-1 gap-0 divide-y divide-gray-200 ${past ? "stripes" : ""}`}>
+      <div className={`flex flex-col flex-1 gap-0 divide-y divide-gray-400 ${past ? "stripes" : ""}`}>
         {SHIFTS.map((shift) => (
           <ShiftSlot
             key={shift.id}
