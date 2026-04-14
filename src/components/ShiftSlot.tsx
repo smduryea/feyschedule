@@ -28,7 +28,7 @@ export function ShiftSlot({ shift, signups, colorMap, onSignUp, onRemove, disabl
 
       {/* Slots: signed-up badges + open-slot sign-up buttons */}
       <div className="px-3 py-2 min-h-[36px]">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-col items-start gap-1.5">
           {signups.map((signup) => {
             const color = getBookingColor(signup.name, colorMap);
             return (
