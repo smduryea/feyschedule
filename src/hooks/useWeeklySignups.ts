@@ -79,5 +79,33 @@ export function useWeeklySignups(weekStart: Date) {
     }
   };
 
-  return { signups, loading, createSignup, deleteSignup };
+  const updateSignup = async (
+    id: string,
+    fields: { shift_id?: string; name?: string }
+  ): Promise<boolean> => {
+    const prev = signups;
+    setSignups((s) => s.map((x) => (x.id === id ? { ...x, ...fields } : x)));
+
+    try {
+      const res = await fetch(`/api/weekly-signups/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      if (res.status === 409) {
+        toast.error("Already signed up for that shift");
+        setSignups(prev);
+        return false;
+      }
+      if (!res.ok) throw new Error();
+      toast.success("Moved");
+      return true;
+    } catch {
+      toast.error("Failed to move signup");
+      setSignups(prev);
+      return false;
+    }
+  };
+
+  return { signups, loading, createSignup, deleteSignup, updateSignup };
 }

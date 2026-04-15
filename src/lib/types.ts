@@ -27,3 +27,22 @@ export interface WeeklySignup {
   week_start: string; // ISO date string (YYYY-MM-DD) — the Monday
   created_at: string;
 }
+
+export interface CustomDailyShift {
+  id: string;
+  name: string;
+  week_start: string;
+  startTime: string; // "HH:MM"
+  endTime: string;   // "HH:MM"
+  maxSignups: number;
+  dates: string[]; // YYYY-MM-DD per applicable day
+  created_at: string;
+}
+
+export interface CustomWeeklyShift {
+  id: string;
+  name: string;
+  week_start: string;
+  maxSignups: number;
+  created_at: string;
+}

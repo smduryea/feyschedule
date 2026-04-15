@@ -2,23 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { WEEKLY_SHIFTS } from "@/lib/shifts";
+import { CustomWeeklyShift } from "@/lib/types";
 
 interface WeeklySignupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (signup: { name: string; shift_id: string }) => Promise<boolean>;
   selectedShiftId: string | null;
+  customShifts: CustomWeeklyShift[];
   isMobile: boolean;
 }
 
 export function WeeklySignupModal({
-  isOpen, onClose, onSubmit, selectedShiftId, isMobile,
+  isOpen, onClose, onSubmit, selectedShiftId, customShifts, isMobile,
 }: WeeklySignupModalProps) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const shift = WEEKLY_SHIFTS.find((s) => s.id === selectedShiftId);
+  const shift =
+    WEEKLY_SHIFTS.find((s) => s.id === selectedShiftId) ||
+    customShifts.find((s) => s.id === selectedShiftId);
 
   useEffect(() => {
     if (!isOpen) return;

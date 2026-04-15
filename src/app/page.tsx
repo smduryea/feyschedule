@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useWeekNavigation } from "@/hooks/useWeekNavigation";
 import { useSignups } from "@/hooks/useSignups";
 import { useWeeklySignups } from "@/hooks/useWeeklySignups";
+import { useCustomShifts } from "@/hooks/useCustomShifts";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { getDaysOfWeek, isPastDay } from "@/lib/dateUtils";
 import { buildColorMap } from "@/lib/colors";
@@ -12,13 +13,15 @@ import { WeekGrid } from "@/components/WeekGrid";
 import { WeeklyShiftsPanel } from "@/components/WeeklyShiftsPanel";
 import { SignupModal } from "@/components/SignupModal";
 import { WeeklySignupModal } from "@/components/WeeklySignupModal";
+import { CustomShiftModal } from "@/components/CustomShiftModal";
 
 export default function Home() {
   const isMobile = useIsMobile();
   const { weekStart, weekEnd, weekLabel, goNextWeek, goPrevWeek, goToday, isCurrentWeek } =
     useWeekNavigation();
-  const { signups, loading, createSignup, deleteSignup } = useSignups(weekStart, weekEnd);
-  const { signups: weeklySignups, loading: weeklyLoading, createSignup: createWeeklySignup, deleteSignup: deleteWeeklySignup } = useWeeklySignups(weekStart);
+  const { signups, loading, createSignup, deleteSignup, updateSignup } = useSignups(weekStart, weekEnd);
+  const { signups: weeklySignups, loading: weeklyLoading, createSignup: createWeeklySignup, deleteSignup: deleteWeeklySignup, updateSignup: updateWeeklySignup } = useWeeklySignups(weekStart);
+  const { daily: customDaily, weekly: customWeekly, createDaily: createCustomDaily, createWeekly: createCustomWeekly, deleteDaily: deleteCustomDaily, deleteWeekly: deleteCustomWeekly } = useCustomShifts(weekStart);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -26,6 +29,8 @@ export default function Home() {
 
   const [weeklyModalOpen, setWeeklyModalOpen] = useState(false);
   const [selectedWeeklyShiftId, setSelectedWeeklyShiftId] = useState<string | null>(null);
+
+  const [customShiftModalOpen, setCustomShiftModalOpen] = useState(false);
 
   const weekDays = getDaysOfWeek(weekStart);
   const allNames = [...signups.map((s) => s.name), ...weeklySignups.map((s) => s.name)];
@@ -45,6 +50,20 @@ export default function Home() {
     setModalOpen(true);
   };
 
+  const handleMoveDailySignup = (signupId: string, targetShiftId: string, targetDate: string) => {
+    const s = signups.find((x) => x.id === signupId);
+    if (!s) return;
+    if (s.shift_id === targetShiftId && s.date === targetDate) return;
+    updateSignup(signupId, { shift_id: targetShiftId, date: targetDate });
+  };
+
+  const handleMoveWeeklySignup = (signupId: string, targetShiftId: string) => {
+    const s = weeklySignups.find((x) => x.id === signupId);
+    if (!s) return;
+    if (s.shift_id === targetShiftId) return;
+    updateWeeklySignup(signupId, { shift_id: targetShiftId });
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-6 sm:py-8">
       {/* Header */}
@@ -56,12 +75,21 @@ export default function Home() {
               Shift<br className="sm:hidden" /> Schedule
             </h1>
           </div>
-          <button
-            onClick={handleNewSignup}
-            className="shrink-0 border-2 border-gray-900 bg-lime-300 px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-gray-900 hover:bg-lime-400 active:translate-y-0.5 transition-all sm:px-6 sm:py-3"
-          >
-            + Sign Up
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setCustomShiftModalOpen(true)}
+              disabled={isPastWeek}
+              className="border-2 border-gray-900 bg-white px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-gray-900 hover:bg-lime-200 active:translate-y-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white sm:px-6 sm:py-3"
+            >
+              + Add Shift
+            </button>
+            <button
+              onClick={handleNewSignup}
+              className="border-2 border-gray-900 bg-lime-300 px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-gray-900 hover:bg-lime-400 active:translate-y-0.5 transition-all sm:px-6 sm:py-3"
+            >
+              + Sign Up
+            </button>
+          </div>
         </div>
         <div className="h-1 bg-gray-900 w-full" />
       </div>
@@ -86,9 +114,12 @@ export default function Home() {
         <WeekGrid
           weekStart={weekStart}
           signups={signups}
+          customShifts={customDaily}
           colorMap={colorMap}
           onSignUp={handleSignUp}
           onRemove={deleteSignup}
+          onMoveSignup={handleMoveDailySignup}
+          onDeleteCustomShift={deleteCustomDaily}
           isMobile={isMobile}
         />
       )}
@@ -102,12 +133,15 @@ export default function Home() {
         ) : (
           <WeeklyShiftsPanel
             signups={weeklySignups}
+            customShifts={customWeekly}
             colorMap={colorMap}
             onSignUp={(shiftId) => {
               setSelectedWeeklyShiftId(shiftId);
               setWeeklyModalOpen(true);
             }}
             onRemove={deleteWeeklySignup}
+            onMoveSignup={handleMoveWeeklySignup}
+            onDeleteCustomShift={deleteCustomWeekly}
             isPastWeek={isPastWeek}
           />
         )}
@@ -126,6 +160,8 @@ export default function Home() {
         selectedDate={selectedDate}
         selectedShiftId={selectedShiftId}
         weekDays={weekDays}
+        customDaily={customDaily}
+        customWeekly={customWeekly}
         isMobile={isMobile}
       />
 
@@ -134,6 +170,16 @@ export default function Home() {
         onClose={() => setWeeklyModalOpen(false)}
         onSubmit={createWeeklySignup}
         selectedShiftId={selectedWeeklyShiftId}
+        customShifts={customWeekly}
+        isMobile={isMobile}
+      />
+
+      <CustomShiftModal
+        isOpen={customShiftModalOpen}
+        onClose={() => setCustomShiftModalOpen(false)}
+        onSubmitDaily={createCustomDaily}
+        onSubmitWeekly={createCustomWeekly}
+        weekDays={weekDays}
         isMobile={isMobile}
       />
     </div>

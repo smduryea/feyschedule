@@ -37,6 +37,27 @@ async function getDb() {
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
         )
       `);
+      db.run(`
+        CREATE TABLE IF NOT EXISTS custom_daily_shifts (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          week_start TEXT NOT NULL,
+          start_time TEXT NOT NULL,
+          end_time TEXT NOT NULL,
+          max_signups INTEGER NOT NULL,
+          dates TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      db.run(`
+        CREATE TABLE IF NOT EXISTS custom_weekly_shifts (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          week_start TEXT NOT NULL,
+          max_signups INTEGER NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
       save();
     })();
   }
@@ -146,6 +167,161 @@ export async function createWeeklySignup(id: string, name: string, shift_id: str
 export async function deleteWeeklySignup(id: string) {
   const db = await getDb();
   db.run("DELETE FROM weekly_signups WHERE id = ?", [id]);
+  save();
+}
+
+export async function updateWeeklySignup(
+  id: string,
+  fields: { name?: string; shift_id?: string; week_start?: string }
+) {
+  const db = await getDb();
+
+  if (fields.name || fields.shift_id || fields.week_start) {
+    const existing = db.prepare("SELECT name, shift_id, week_start FROM weekly_signups WHERE id = ?");
+    existing.bind([id]);
+    existing.step();
+    const row = existing.getAsObject() as { name: string; shift_id: string; week_start: string };
+    existing.free();
+
+    const name = fields.name ?? row.name;
+    const shift_id = fields.shift_id ?? row.shift_id;
+    const week_start = fields.week_start ?? row.week_start;
+
+    const dup = db.prepare(
+      "SELECT id FROM weekly_signups WHERE id != ? AND LOWER(name) = LOWER(?) AND shift_id = ? AND week_start = ? LIMIT 1"
+    );
+    dup.bind([id, name, shift_id, week_start]);
+    const hasDup = dup.step();
+    dup.free();
+
+    if (hasDup) {
+      throw new Error("DUPLICATE");
+    }
+  }
+
+  const sets: string[] = [];
+  const values: string[] = [];
+
+  if (fields.name !== undefined) { sets.push("name = ?"); values.push(fields.name); }
+  if (fields.shift_id !== undefined) { sets.push("shift_id = ?"); values.push(fields.shift_id); }
+  if (fields.week_start !== undefined) { sets.push("week_start = ?"); values.push(fields.week_start); }
+
+  if (sets.length === 0) return;
+
+  values.push(id);
+  db.run(`UPDATE weekly_signups SET ${sets.join(", ")} WHERE id = ?`, values);
+  save();
+}
+
+// --- Custom shifts ---
+
+export async function getCustomDailyShifts(week_start: string) {
+  const db = await getDb();
+  const stmt = db.prepare(
+    "SELECT * FROM custom_daily_shifts WHERE week_start = ? ORDER BY start_time"
+  );
+  stmt.bind([week_start]);
+  const results: Record<string, unknown>[] = [];
+  while (stmt.step()) {
+    const row = stmt.getAsObject() as Record<string, unknown>;
+    // parse dates JSON to array
+    try {
+      row.dates = JSON.parse(row.dates as string);
+    } catch {
+      row.dates = [];
+    }
+    results.push(row);
+  }
+  stmt.free();
+  return results;
+}
+
+export async function createCustomDailyShift(input: {
+  id: string;
+  name: string;
+  week_start: string;
+  start_time: string;
+  end_time: string;
+  max_signups: number;
+  dates: string[];
+}) {
+  const db = await getDb();
+  db.run(
+    `INSERT INTO custom_daily_shifts
+      (id, name, week_start, start_time, end_time, max_signups, dates)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.id,
+      input.name,
+      input.week_start,
+      input.start_time,
+      input.end_time,
+      input.max_signups,
+      JSON.stringify(input.dates),
+    ]
+  );
+  save();
+
+  const stmt = db.prepare("SELECT * FROM custom_daily_shifts WHERE id = ?");
+  stmt.bind([input.id]);
+  stmt.step();
+  const row = stmt.getAsObject() as Record<string, unknown>;
+  stmt.free();
+  try {
+    row.dates = JSON.parse(row.dates as string);
+  } catch {
+    row.dates = [];
+  }
+  return row;
+}
+
+export async function deleteCustomDailyShift(id: string) {
+  const db = await getDb();
+  db.run("DELETE FROM custom_daily_shifts WHERE id = ?", [id]);
+  db.run("DELETE FROM signups WHERE shift_id = ?", [id]);
+  save();
+}
+
+export async function getCustomWeeklyShifts(week_start: string) {
+  const db = await getDb();
+  const stmt = db.prepare(
+    "SELECT * FROM custom_weekly_shifts WHERE week_start = ? ORDER BY created_at"
+  );
+  stmt.bind([week_start]);
+  const results: Record<string, unknown>[] = [];
+  while (stmt.step()) {
+    results.push(stmt.getAsObject());
+  }
+  stmt.free();
+  return results;
+}
+
+export async function createCustomWeeklyShift(input: {
+  id: string;
+  name: string;
+  week_start: string;
+  max_signups: number;
+}) {
+  const db = await getDb();
+  db.run(
+    `INSERT INTO custom_weekly_shifts (id, name, week_start, max_signups)
+     VALUES (?, ?, ?, ?)`,
+    [input.id, input.name, input.week_start, input.max_signups]
+  );
+  save();
+
+  const stmt = db.prepare("SELECT * FROM custom_weekly_shifts WHERE id = ?");
+  stmt.bind([input.id]);
+  stmt.step();
+  const row = stmt.getAsObject();
+  stmt.free();
+  return row;
+}
+
+export async function deleteCustomWeeklyShift(id: string) {
+  const db = await getDb();
+  db.run("DELETE FROM custom_weekly_shifts WHERE id = ?", [id]);
+  db.run("DELETE FROM weekly_signups WHERE shift_id = ?", [id]);
   save();
 }
 

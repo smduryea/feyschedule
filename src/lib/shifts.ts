@@ -17,7 +17,7 @@ export const SHIFTS: Shift[] = [
   { id: "cooking-1", name: "Cooking Shift", startTime: "16:30", endTime: "18:30", maxSignups: 2 },
   { id: "cooking-2", name: "Cooking Shift", startTime: "17:30", endTime: "19:30", maxSignups: 2 },
   { id: "pre-dinner-dishes", name: "Pre Dinner Dishes", startTime: "18:00", endTime: "19:00", maxSignups: 2 },
-  { id: "post-dinner-dishes", name: "Post Dinner Dishes", startTime: "20:00", endTime: "21:30", maxSignups: 2 },
+  { id: "post-dinner-dishes", name: "Post Dinner Dishes", startTime: "20:00", endTime: "21:30", maxSignups: 3 },
 ];
 
 export function getShiftById(id: string): Shift | undefined {

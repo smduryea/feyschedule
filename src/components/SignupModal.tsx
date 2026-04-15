@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { SHIFTS, WEEKLY_SHIFTS } from "@/lib/shifts";
 import { formatShiftTime } from "@/lib/shifts";
 import { isPastDay, toDateString } from "@/lib/dateUtils";
+import { CustomDailyShift, CustomWeeklyShift } from "@/lib/types";
 
 interface SignupModalProps {
   isOpen: boolean;
@@ -13,11 +14,13 @@ interface SignupModalProps {
   selectedDate: Date | null;
   selectedShiftId: string | null;
   weekDays: Date[];
+  customDaily: CustomDailyShift[];
+  customWeekly: CustomWeeklyShift[];
   isMobile: boolean;
 }
 
 export function SignupModal({
-  isOpen, onClose, onSubmit, onSubmitWeekly, selectedDate, selectedShiftId, weekDays, isMobile,
+  isOpen, onClose, onSubmit, onSubmitWeekly, selectedDate, selectedShiftId, weekDays, customDaily, customWeekly, isMobile,
 }: SignupModalProps) {
   const [name, setName] = useState("");
   const [dateIndex, setDateIndex] = useState(0);
@@ -25,7 +28,10 @@ export function SignupModal({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const isWeeklyShift = WEEKLY_SHIFTS.some((s) => s.id === shiftId);
+  const isWeeklyShift =
+    WEEKLY_SHIFTS.some((s) => s.id === shiftId) || customWeekly.some((s) => s.id === shiftId);
+
+  const selectedCustomDaily = customDaily.find((s) => s.id === shiftId);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,6 +47,17 @@ export function SignupModal({
     setShiftId(selectedShiftId ?? SHIFTS[0]?.id ?? "");
     setError("");
   }, [isOpen, selectedDate, selectedShiftId, weekDays]);
+
+  // When the selected shift is a custom daily shift, snap dateIndex to a valid day
+  useEffect(() => {
+    if (!selectedCustomDaily) return;
+    const currentDateStr = toDateString(weekDays[dateIndex]);
+    if (selectedCustomDaily.dates.includes(currentDateStr)) return;
+    const firstAllowed = weekDays.findIndex(
+      (d) => selectedCustomDaily.dates.includes(toDateString(d)) && !isPastDay(d)
+    );
+    if (firstAllowed >= 0) setDateIndex(firstAllowed);
+  }, [selectedCustomDaily, weekDays, dateIndex]);
 
   if (!isOpen) return null;
 
@@ -88,11 +105,21 @@ export function SignupModal({
                 {shift.name} ({formatShiftTime(shift.startTime)} – {formatShiftTime(shift.endTime)})
               </option>
             ))}
+            {customDaily.map((shift) => (
+              <option key={shift.id} value={shift.id}>
+                {shift.name} ({formatShiftTime(shift.startTime)} – {formatShiftTime(shift.endTime)}) — custom
+              </option>
+            ))}
           </optgroup>
           <optgroup label="Weekly">
             {WEEKLY_SHIFTS.map((shift) => (
               <option key={shift.id} value={shift.id}>
                 {shift.name} (weekly)
+              </option>
+            ))}
+            {customWeekly.map((shift) => (
+              <option key={shift.id} value={shift.id}>
+                {shift.name} (weekly) — custom
               </option>
             ))}
           </optgroup>
@@ -103,12 +130,17 @@ export function SignupModal({
         <div className="flex flex-col gap-1">
           <label className="font-mono text-[10px] uppercase tracking-[0.15em] font-bold text-gray-500">Date</label>
           <select value={dateIndex} onChange={(e) => setDateIndex(Number(e.target.value))} className={inputClass}>
-            {weekDays.map((d, i) => (
-              <option key={i} value={i} disabled={isPastDay(d)}>
-                {d.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
-                {isPastDay(d) ? " (past)" : ""}
-              </option>
-            ))}
+            {weekDays.map((d, i) => {
+              const dateStr = toDateString(d);
+              const notAllowed = selectedCustomDaily ? !selectedCustomDaily.dates.includes(dateStr) : false;
+              const disabled = isPastDay(d) || notAllowed;
+              return (
+                <option key={i} value={i} disabled={disabled}>
+                  {d.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
+                  {isPastDay(d) ? " (past)" : notAllowed ? " (n/a)" : ""}
+                </option>
+              );
+            })}
           </select>
         </div>
       )}

@@ -3,6 +3,7 @@
 import { Signup, Shift } from "@/lib/types";
 import { formatShiftTime } from "@/lib/shifts";
 import { getBookingColor } from "@/lib/colors";
+import { setDragPayload } from "@/lib/dnd";
 
 interface ShiftSlotProps {
   shift: Shift;
@@ -10,20 +11,37 @@ interface ShiftSlotProps {
   colorMap: Record<string, import("@/lib/colors").BookingPalette>;
   onSignUp: (shiftId: string) => void;
   onRemove: (signupId: string) => void;
+  onDeleteShift?: () => void;
   disabled: boolean;
 }
 
-export function ShiftSlot({ shift, signups, colorMap, onSignUp, onRemove, disabled }: ShiftSlotProps) {
+export function ShiftSlot({ shift, signups, colorMap, onSignUp, onRemove, onDeleteShift, disabled }: ShiftSlotProps) {
   const openSlots = Math.max(0, shift.maxSignups - signups.length);
 
   return (
     <div className="flex-1 bg-white flex flex-col">
       {/* Shift header */}
-      <div className="flex flex-col px-3 py-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex flex-col px-3 py-2 border-b border-gray-200 bg-gray-50 relative">
         <span className="font-bold text-xs text-gray-900 uppercase tracking-wide whitespace-nowrap">{shift.name}</span>
         <span className="font-mono text-[10px] text-gray-500">
           {formatShiftTime(shift.startTime)} – {formatShiftTime(shift.endTime)}
         </span>
+        {onDeleteShift && !disabled && (
+          <button
+            onClick={() => {
+              if (window.confirm(`Delete custom shift "${shift.name}"? Existing signups will also be removed.`)) {
+                onDeleteShift();
+              }
+            }}
+            className="absolute top-1.5 right-1.5 h-5 w-5 flex items-center justify-center border border-gray-400 hover:border-gray-900 hover:bg-black/10 transition-colors"
+            aria-label={`Delete shift ${shift.name}`}
+            title="Delete custom shift"
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Slots: signed-up badges + open-slot sign-up buttons */}
@@ -34,9 +52,12 @@ export function ShiftSlot({ shift, signups, colorMap, onSignUp, onRemove, disabl
             return (
               <div
                 key={signup.id}
-                className={`group inline-flex items-center gap-1.5 border-l-4 px-2 py-1 text-xs font-bold ${color.bg} ${color.border} ${color.text}`}
+                draggable={!disabled}
+                onDragStart={(e) => setDragPayload(e, { kind: "daily", signupId: signup.id })}
+                className={`group flex w-full items-center gap-1.5 border-l-4 px-2 py-1 text-xs font-bold ${!disabled ? "cursor-grab active:cursor-grabbing" : ""} ${color.bg} ${color.border} ${color.text}`}
+                title={!disabled ? "Drag to move to another shift" : undefined}
               >
-                <span className="truncate max-w-[120px]">{signup.name}</span>
+                <span className="flex-1 min-w-0 truncate">{signup.name}</span>
                 {!disabled && (
                   <button
                     onClick={() => {
@@ -60,9 +81,11 @@ export function ShiftSlot({ shift, signups, colorMap, onSignUp, onRemove, disabl
               key={`open-${i}`}
               onClick={() => onSignUp(shift.id)}
               disabled={disabled}
-              className="text-[10px] font-bold uppercase tracking-wider border-2 border-gray-900 px-2.5 py-1 hover:bg-lime-300 transition-colors active:translate-y-0.5 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              aria-label={`Sign up for ${shift.name}`}
+              title="Sign up"
+              className="h-6 w-full flex items-center justify-center text-sm font-bold border-2 border-gray-900 hover:bg-lime-300 transition-colors active:translate-y-0.5 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent leading-none"
             >
-              + Sign Up
+              +
             </button>
           ))}
         </div>
